@@ -16,7 +16,7 @@ def make_tarfile(output_filename, source_dir):
         tar.add(source_dir, arcname=os.path.basename(source_dir))
 
 def main(args):    
-    default_path = '/home/sandro/Projects/License Plate/Neural Network/yolov5_custom_dataset/VOC_custom/VOC_custom_devkit/ImageSets/Main/'
+    default_path = '/home/sandro/Projects/License Plate/Neural Network/yolov5_custom_dataset/VOC_custom/ImageSets/Main/'
     line_count = 0
     rand_list = []
     train_range = 0
