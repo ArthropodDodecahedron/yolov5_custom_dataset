@@ -1,3 +1,5 @@
 *.jpeg
 *.jpg
 VOC_custom/
+*.zip
+
