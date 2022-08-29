@@ -40,48 +40,60 @@ def main(args):
     VOC_path = os.path.join(workdir_path, dataset_dir)
     os.mkdir(VOC_path)
 
-    ### Merge sources if more than 1
-    if(len(source)) > 1:
-        ### Create temp directories for each source file
-        for i in range(len(source)):
-            temp_directory = source[i] + '_temp'
-            temp_path = os.path.join(VOC_path, temp_directory)
-            os.mkdir(temp_path)
-            unpack_zipfile(source[i],temp_path)
+    
+    ### Create temp directories for each source file
+    for i in range(len(source)):
+        temp_directory = source[i] + '_temp'
+        temp_path = os.path.join(VOC_path, temp_directory)
+        os.mkdir(temp_path)
+        unpack_zipfile(source[i],temp_path)
+        ### Remove white spaces from filenames and .txt's
+        with open(temp_path + '/ImageSets/Main/default.txt', "r+") as default_file:
+            default_text = default_file.read()
+            default_file.seek(0)
+            for line in default_text:
+                line = line.replace(' ','_')
+                default_file.write(line)           
+            default_file.truncate()
+        file_names_JPEG = os.listdir(temp_path + '/JPEGImages')           
+        file_names_annotations = os.listdir(temp_path + '/Annotations')
+        for file_name in file_names_JPEG:
+            os.rename(temp_path + '/JPEGImages/' + file_name, temp_path + '/JPEGImages/' + file_name.replace(' ','_'))
+        for file_name in file_names_annotations:
+            os.rename(temp_path + '/Annotations/' + file_name, temp_path + '/Annotations/' + file_name.replace(' ','_'))
+    ### Merge directories
 
-        ### Merge directories
+    ### Move contents of the first source into the main dataset directory
+    first_source_dir = source[0] + '_temp'
+    source_dir = os.path.join(VOC_path, first_source_dir)
+    list_dir = os.listdir(source_dir)
+    L = ['Annotations', 'ImageSets', 'JPEGImages']
+    for sub_dir in list_dir:
+        if sub_dir in L:
+            dir_to_move = os.path.join(source_dir, sub_dir)
+            shutil.move(dir_to_move, VOC_path)
+    shutil.move(source_dir + '/labelmap.txt', VOC_path + '/labelmap.txt')
+    ### Remove source directory
+    shutil.rmtree(VOC_path + '/' + source[0] + '_temp')
 
-        ### Move contents of the first source into the main dataset directory
-        first_source_dir = source[0] + '_temp'
-        source_dir = os.path.join(VOC_path, first_source_dir)
-        list_dir = os.listdir(source_dir)
-        L = ['Annotations', 'ImageSets', 'JPEGImages']
-        for sub_dir in list_dir:
-            if sub_dir in L:
-                dir_to_move = os.path.join(source_dir, sub_dir)
-                shutil.move(dir_to_move, VOC_path)
-        shutil.move(source_dir + '/labelmap.txt', VOC_path + '/labelmap.txt')
+    ### Add contents of other directories
+    for i in range(1, len(source)):
+        ### Modify .txt with list of files
+        with open(VOC_path + '/' + source[i] + '_temp/ImageSets/Main/default.txt', 'r') as file_source:
+            for line in file_source:          
+                with open(VOC_path + '/ImageSets/Main/default.txt', 'a') as file_dest:
+                    file_dest.write(line)
+        ### Move contents of annotations and jpegs
+        source_dir_JPEG =  VOC_path + '/' + source[i] + '_temp/JPEGImages'
+        source_dir_annotations =  VOC_path + '/' + source[i] + '_temp/Annotations'
+        file_names_JPEG = os.listdir(source_dir_JPEG)           
+        file_names_annotations = os.listdir(source_dir_annotations)
+        for file in file_names_JPEG:
+            shutil.move(os.path.join(source_dir_JPEG, file), VOC_path + '/JPEGImages')
+        for file in file_names_annotations:
+            shutil.move(os.path.join(source_dir_annotations, file), VOC_path + '/Annotations')
         ### Remove source directory
-        shutil.rmtree(VOC_path + '/' + source[0] + '_temp')
-
-        ### Add contents of other directories
-        for i in range(1, len(source)):
-            ### Modify .txt with list of files
-            with open(VOC_path + '/' + source[i] + '_temp/ImageSets/Main/default.txt', 'r') as file_source:
-                for line in file_source:          
-                    with open(VOC_path + '/ImageSets/Main/default.txt', 'a') as file_dest:
-                        file_dest.write(line)
-            ### Move contents of annotations and jpegs
-            source_dir_JPEG =  VOC_path + '/' + source[i] + '_temp/JPEGImages'
-            source_dir_annotations =  VOC_path + '/' + source[i] + '_temp/Annotations'
-            file_names_JPEG = os.listdir(source_dir_JPEG)           
-            file_names_annotations = os.listdir(source_dir_annotations)
-            for file in file_names_JPEG:
-                shutil.move(os.path.join(source_dir_JPEG, file), VOC_path + '/JPEGImages')
-            for file in file_names_annotations:
-                shutil.move(os.path.join(source_dir_annotations, file), VOC_path + '/Annotations')
-            ### Remove source directory
-            shutil.rmtree(VOC_path + '/' + source[i] + '_temp')
+        shutil.rmtree(VOC_path + '/' + source[i] + '_temp')
         
     ## Generate split
     default_path = workdir_path + '/VOC_custom/ImageSets/Main/'
