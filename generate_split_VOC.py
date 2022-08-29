@@ -89,7 +89,7 @@ def main(args):
         for line in default_file:          
             if line.strip():
                 line_count += 1      
-            rand_list.append(line_count)  
+            rand_list.append(line.rstrip())  
 
     random.seed(seed)
     random.shuffle(rand_list)
