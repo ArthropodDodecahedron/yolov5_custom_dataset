@@ -75,7 +75,7 @@ def main(args):
                 shutil.move(temp_path + '/images/' + file, jpeg_path)
             with open(main_path + '/default.txt', 'w') as coco_default:
                 for i in range(len(file_names_JPEG)):
-                    coco_default.write(file_names_JPEG[i] + '\n')
+                    coco_default.write(file_names_JPEG[i].replace('.jpeg','').replace('.jpg','') + '\n')
             shutil.rmtree(temp_path + '/annotations')
             shutil.rmtree(temp_path + '/images')
 
