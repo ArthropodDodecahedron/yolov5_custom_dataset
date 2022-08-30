@@ -5,6 +5,7 @@ import tarfile
 import os.path
 import zipfile
 import shutil
+from coco2voc import convert
 
 def parse_args(known=False):
     parser = argparse.ArgumentParser()
@@ -23,6 +24,16 @@ def unpack_zipfile(source_zipfile, dest_dir):
     with zipfile.ZipFile(source_zipfile, 'r') as zip_ref:
         zip_ref.extractall(dest_dir)
 
+def check_format(temp_path, source):
+    if os.path.exists(temp_path + '/labelmap.txt'):
+        print('Detected VOC format dataset')
+        return('VOC') 
+    elif os.path.exists(temp_path + '/annotations/instances_default.json'):
+        print('Detected COCO format dataset')
+        return('COCO')
+    else:
+        raise Exception('Unknown format: ' + str(source))
+
 def main(args):    
     workdir_path = os.getcwd() 
     dataset_dir = 'VOC_custom'
@@ -39,14 +50,35 @@ def main(args):
 
     VOC_path = os.path.join(workdir_path, dataset_dir)
     os.mkdir(VOC_path)
-
-    
+  
     ### Create temp directories for each source file
     for i in range(len(source)):
         temp_directory = source[i] + '_temp'
         temp_path = os.path.join(VOC_path, temp_directory)
         os.mkdir(temp_path)
         unpack_zipfile(source[i],temp_path)
+
+        ### Check format and convert to VOC
+        if check_format(temp_path, source[i]) == 'COCO':
+            voc_dirs = ['Annotations','JPEGImages','ImageSets','Main']
+            xml_path = os.path.join(temp_path, voc_dirs[0])
+            jpeg_path = os.path.join(temp_path, voc_dirs[1])
+            txt_path = os.path.join(temp_path, voc_dirs[2])
+            main_path = os.path.join(temp_path, voc_dirs[2], voc_dirs[3])
+            os.mkdir(xml_path)
+            os.mkdir(jpeg_path)
+            os.mkdir(txt_path)
+            os.mkdir(main_path)
+            convert(temp_path + '/annotations/instances_default.json', xml_path)
+            file_names_JPEG = os.listdir(temp_path + '/images') 
+            for file in file_names_JPEG:
+                shutil.move(temp_path + '/images/' + file, jpeg_path)
+            with open(main_path + '/default.txt', 'w') as coco_default:
+                for i in range(len(file_names_JPEG)):
+                    coco_default.write(file_names_JPEG[i] + '\n')
+            shutil.rmtree(temp_path + '/annotations')
+            shutil.rmtree(temp_path + '/images')
+
         ### Remove white spaces from filenames and .txt's
         with open(temp_path + '/ImageSets/Main/default.txt', "r+") as default_file:
             default_text = default_file.read()
@@ -61,8 +93,8 @@ def main(args):
             os.rename(temp_path + '/JPEGImages/' + file_name, temp_path + '/JPEGImages/' + file_name.replace(' ','_'))
         for file_name in file_names_annotations:
             os.rename(temp_path + '/Annotations/' + file_name, temp_path + '/Annotations/' + file_name.replace(' ','_'))
+    
     ### Merge directories
-
     ### Move contents of the first source into the main dataset directory
     first_source_dir = source[0] + '_temp'
     source_dir = os.path.join(VOC_path, first_source_dir)
